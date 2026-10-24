@@ -66,11 +66,44 @@ jobs:
           # Gradle downloads the build-tools it needs itself; this only saves time.
           "$SDKMANAGER" --sdk_root="$SDK" "build-tools;36.0.0" || true
 
+      - name: Conferir a chave de assinatura
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # Spaces and line breaks picked up when pasting are not part of base64.
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' > "$RUNNER_TEMP/keystore.b64"
+          chars=$(wc -c < "$RUNNER_TEMP/keystore.b64")
+          echo "::notice::ANDROID_KEYSTORE_BASE64: $chars caracteres; senha: ${#ANDROID_KEYSTORE_PASSWORD}; alias: ${#ANDROID_KEY_ALIAS}; senha da chave: ${#ANDROID_KEY_PASSWORD}"
+          if ! base64 -d "$RUNNER_TEMP/keystore.b64" > "$RUNNER_TEMP/openplan3d.keystore" 2>/dev/null; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 não é um texto base64 válido ($chars caracteres). Cole só a linha longa do SEGREDOS-GITHUB.txt, inteira, sem o rótulo 'Valor'."
+            exit 1
+          fi
+          if [ "$ANDROID_KEY_PASSWORD" != "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "::error::ANDROID_KEY_PASSWORD precisa ser igual a ANDROID_KEYSTORE_PASSWORD (a mesma senha)."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$RUNNER_TEMP/openplan3d.keystore" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::A chave abriu, mas a senha (ANDROID_KEYSTORE_PASSWORD) ou o alias (ANDROID_KEY_ALIAS = openplan3d) não conferem."
+            exit 1
+          fi
+          echo "::notice::Chave de assinatura conferida."
+
       - name: Compilar APK (assinatura fixa, com os segredos do repositório)
         if: env.HAS_KEYSTORE == 'true'
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/openplan3d.keystore"
-          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+          cd android && chmod +x gradlew
+          if ! ./gradlew --no-daemon assembleRelease > "$RUNNER_TEMP/gradle.log" 2>&1; then
+            cat "$RUNNER_TEMP/gradle.log"
+            # The cause, readable as an annotation even where logs are not.
+            summary=$(grep -E "What went wrong|error:|Error|FAILURE|> " "$RUNNER_TEMP/gradle.log" | grep -v "^> Task" | head -25 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+            echo "::error title=Gradle falhou::$summary"
+            exit 1
+          fi
+          tail -5 "$RUNNER_TEMP/gradle.log"
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/OpenPlan3D.apk"
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/openplan3d.keystore
