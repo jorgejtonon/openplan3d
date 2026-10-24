@@ -1590,4 +1590,6 @@ export const pt = {
   "viewerVR.panoramaWorking": "Gerando foto 360°…",
   "viewerVR.panoramaDone": "Foto 360° salva (panorama-360.jpg).",
   "viewerVR.panoramaFailed": "Não foi possível gerar a foto 360° neste aparelho.",
+  "app.install": "Instalar aplicativo",
+  "app.installHelp": "Adicionar o OpenPlan3D à tela inicial: abre em tela cheia e funciona sem internet",
 } as const;

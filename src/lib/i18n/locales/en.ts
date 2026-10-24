@@ -1590,4 +1590,6 @@ export const en = {
   "viewerVR.panoramaWorking": "Rendering 360° photo…",
   "viewerVR.panoramaDone": "360° photo saved (panorama-360.jpg).",
   "viewerVR.panoramaFailed": "Could not create the 360° photo on this device.",
+  "app.install": "Install app",
+  "app.installHelp": "Add OpenPlan3D to the home screen: opens full screen and works offline",
 } as const;

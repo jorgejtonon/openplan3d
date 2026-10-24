@@ -27,10 +27,31 @@ Na vista **3D**, toque no ícone de **óculos**.
 ### 3. Foto 360°
 Na vista **3D**, toque em **Foto 360°**. É gerado um `panorama-360.jpg` (4096 × 2048, com metadados *Photo Sphere*) que abre como foto 360° no Google Fotos, no Facebook e em aplicativos de VR. Também pode ser enviado ao cliente pelo WhatsApp.
 
+## Aplicativo para Android
+
+### Opção A — Instalar pelo Chrome (mais simples, VR completo)
+1. Abra o endereço do GitHub Pages no **Chrome do celular**.
+2. Toque em **Instalar aplicativo** (botão azul na tela inicial) ou em **⋮ → Instalar app**.
+3. O OpenPlan3D ganha ícone na tela inicial, abre em tela cheia e **funciona sem internet** depois da primeira abertura.
+
+### Opção B — APK
+A cada envio para `main`, o workflow **Gerar APK Android** compila o app e publica em **Releases**. Link fixo da última versão:
+`https://github.com/<seu-usuario>/openplan3d/releases/latest/download/OpenPlan3D.apk`
+
+1. Abra o link no celular e baixe o `OpenPlan3D.apk`.
+2. Permita **instalar apps desconhecidos** para o navegador quando o Android pedir.
+3. No app, PDFs, fotos 360° e backups são salvos em **Documentos/OpenPlan3D** e abrem o menu **Compartilhar** (WhatsApp, Drive, e-mail).
+4. O botão **Voltar** do Android fecha o VR e as janelas antes de sair da tela.
+
+**Assinatura fixa (recomendado):** cadastre os 4 segredos do arquivo `SEGREDOS-GITHUB.txt` em **Settings → Secrets and variables → Actions**. Sem eles, o APK sai com assinatura de teste e cada nova versão exige desinstalar a anterior, o que apaga os projetos salvos no app.
+
+> O VR imersivo WebXR (Meta Quest) funciona no navegador, não dentro do APK. No celular com óculos tipo Cardboard, os dois funcionam.
+
 ## Publicar no GitHub Pages (grátis)
 1. Crie um repositório no GitHub (por exemplo, `openplan3d`) e envie este código para a branch `main`.
 2. No repositório: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 3. A cada envio para `main`, o workflow **Publicar no GitHub Pages** roda os testes e publica em `https://<seu-usuario>.github.io/openplan3d/`.
+4. No mesmo envio, o workflow **Gerar APK Android** publica o APK em Releases.
 
 O endereço é HTTPS, necessário para o giroscópio, a tela cheia e o WebXR funcionarem no celular.
 

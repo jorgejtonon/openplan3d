@@ -34,6 +34,7 @@
   import { HeadsetSession, detectHeadsetMode, type HeadsetStart } from '$lib/utils/headsetSession';
   import { deepestViewYaw, yawOf } from '$lib/utils/headsetOrientation';
   import { renderPanoramaJPEG } from '$lib/utils/panoramaRenderer';
+  import { enterImmersive, exitImmersive, markBackHandled } from '$lib/native/appBridge';
   import { getCatalogItem, furnitureCatalog, furnitureCategories } from '$lib/utils/furnitureCatalog';
   import type { FurnitureDef } from '$lib/utils/furnitureCatalog';
   import { createWallHighlight } from '$lib/utils/wallHighlight';
@@ -1901,6 +1902,7 @@
     headsetSession = new HeadsetSession(renderer, scene, camera, container, {
       hint: $t('viewerVR.hint'),
       exitLabel: $t('viewerVR.exit'),
+      platform: { enter: enterImmersive, exit: exitImmersive, backHandled: markBackHandled },
       onEnd: () => {
         headsetSession = null;
         headsetActive = false;

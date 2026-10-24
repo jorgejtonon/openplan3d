@@ -13,6 +13,8 @@ const config = {
 			? adapterStatic({ pages: 'site', assets: 'site', fallback: 'index.html', precompress: false, strict: false })
 			: adapterNode(),
 		paths: { base: staticSite ? (process.env.BASE_PATH ?? '') : '' },
+		// Registered by +layout.svelte only in the static site opened in a browser.
+		serviceWorker: { register: false },
 		...(staticSite ? { prerender: { entries: [] } } : {}),
 	}
 };

@@ -17,6 +17,8 @@ export interface HeadsetCallbacks {
   /** Hint text drawn over the stereo view for a few seconds. */
   hint: string;
   exitLabel: string;
+  /** Native app hooks (landscape lock, hidden status bar); no-ops in the browser. */
+  platform?: { enter(): Promise<void>; exit(): Promise<void> | void; backHandled?(): void };
 }
 
 /** Walking speed while the screen (or the headset's button) is held: 1.2 m/s. */
@@ -113,6 +115,10 @@ export class HeadsetSession {
       if (lock) this.cleanups.push(() => { void lock.release().catch(() => {}); });
     } catch { /* Screen may dim after a while. */ }
     this.cleanups.push(() => { if (document.fullscreenElement) void document.exitFullscreen().catch(() => {}); });
+    if (this.callbacks.platform) {
+      try { await this.callbacks.platform.enter(); } catch { /* optional */ }
+      this.cleanups.push(() => { void this.callbacks.platform?.exit(); });
+    }
 
     camera.removeFromParent();
     camera.position.set(start.position.x, start.position.y, start.position.z);
@@ -184,7 +190,12 @@ export class HeadsetSession {
     });
 
     // Leaving fullscreen (back gesture, Esc) ends the session.
-    const onFullscreen = () => { if (!document.fullscreenElement) this.stop(); };
+    const onFullscreen = () => {
+      if (document.fullscreenElement) return;
+      // The Back gesture left fullscreen: that gesture was for the VR view, not for the app.
+      this.callbacks.platform?.backHandled?.();
+      this.stop();
+    };
     document.addEventListener('fullscreenchange', onFullscreen);
     this.cleanups.push(() => document.removeEventListener('fullscreenchange', onFullscreen));
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') this.stop(); };

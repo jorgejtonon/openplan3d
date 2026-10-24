@@ -32,3 +32,8 @@ vite.config.ts.timestamp-*
 
 # Static-site build output
 /site
+
+# Android signing keys never go in the repository
+*.keystore
+*.jks
+SEGREDOS-GITHUB.txt

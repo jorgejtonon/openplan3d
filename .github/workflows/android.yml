@@ -1,0 +1,81 @@
+name: Gerar APK Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+        env:
+          NODE_ENV: production
+          NPM_CONFIG_INCLUDE: dev
+      - name: Testes
+        run: npm test
+      - name: Gerar o app web (sem servidor)
+        run: npx vite build && cp site/index.html site/404.html
+        env:
+          NODE_ENV: production
+          STATIC_SITE: '1'
+          VITE_STATIC_SITE: '1'
+          BASE_PATH: ''
+      - name: Copiar para o projeto Android
+        run: npx cap sync android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+
+      - name: Compilar APK (assinatura fixa, com os segredos do repositório)
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/openplan3d.keystore"
+          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/OpenPlan3D.apk"
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/openplan3d.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Compilar APK (assinatura de teste)
+        if: env.HAS_KEYSTORE != 'true'
+        run: |
+          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/OpenPlan3D.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenPlan3D-apk
+          path: OpenPlan3D.apk
+
+      - name: Publicar em Releases (link fixo para o celular)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: OpenPlan3D Android 1.0.${{ github.run_number }}
+          make_latest: true
+          files: OpenPlan3D.apk
+          body: |
+            Para instalar no Android: abra este link no celular, toque em **OpenPlan3D.apk** e permita "instalar apps desconhecidos" para o navegador.
+            Link fixo para a versão mais recente: https://github.com/${{ github.repository }}/releases/latest/download/OpenPlan3D.apk
