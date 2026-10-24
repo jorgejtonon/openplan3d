@@ -38,13 +38,16 @@ jobs:
           VITE_STATIC_SITE: '1'
           BASE_PATH: ''
       - name: Copiar para o projeto Android
+        if: env.HAS_KEYSTORE == 'true'
         run: npx cap sync android
       - uses: actions/setup-java@v4
+        if: env.HAS_KEYSTORE == 'true'
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
       - uses: android-actions/setup-android@v3
+        if: env.HAS_KEYSTORE == 'true'
 
       - name: Compilar APK (assinatura fixa, com os segredos do repositório)
         if: env.HAS_KEYSTORE == 'true'
@@ -58,18 +61,19 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Compilar APK (assinatura de teste)
+      - name: Aviso — chave de assinatura não cadastrada
         if: env.HAS_KEYSTORE != 'true'
         run: |
-          cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/OpenPlan3D.apk"
+          echo "::warning::APK não gerado: cadastre os 4 segredos ANDROID_* (arquivo SEGREDOS-GITHUB.txt) em Settings → Secrets and variables → Actions e rode este workflow de novo. Sem assinatura fixa, cada versão exigiria desinstalar o app e apagaria os projetos salvos nele."
 
       - uses: actions/upload-artifact@v4
+        if: env.HAS_KEYSTORE == 'true'
         with:
           name: OpenPlan3D-apk
           path: OpenPlan3D.apk
 
       - name: Publicar em Releases (link fixo para o celular)
+        if: env.HAS_KEYSTORE == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
