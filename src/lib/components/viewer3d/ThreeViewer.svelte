@@ -31,6 +31,9 @@
   import { WalkthroughMotion } from '$lib/utils/walkthroughMotion';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+  import { HeadsetSession, detectHeadsetMode, type HeadsetStart } from '$lib/utils/headsetSession';
+  import { deepestViewYaw, yawOf } from '$lib/utils/headsetOrientation';
+  import { renderPanoramaJPEG } from '$lib/utils/panoramaRenderer';
   import { getCatalogItem, furnitureCatalog, furnitureCategories } from '$lib/utils/furnitureCatalog';
   import type { FurnitureDef } from '$lib/utils/furnitureCatalog';
   import { createWallHighlight } from '$lib/utils/wallHighlight';
@@ -63,7 +66,7 @@
   let webglUnavailable = $state(false);
   let animId: number | undefined;
   function requestRender() {
-    if (viewerMounted && animId === undefined) animId = requestAnimationFrame(animate);
+    if (viewerMounted && animId === undefined && !headsetActive) animId = requestAnimationFrame(animate);
   }
   function markSceneDirty() {
     sceneDirty = true;
@@ -99,6 +102,8 @@
   let moveSpeed = $state(800);
   let sprintSpeed = $state(1600);
   let eyeHeight = $state(160); // cm
+  // A VR headset session owns the renderer while this is true.
+  let headsetActive = $state(false);
 
   // Lighting controls state
   let lightingPanelOpen = $state(false);
@@ -1828,6 +1833,116 @@
     }
   }
 
+  /** Eye position (floor-relative y) at the centre of the largest room, or of the plan. */
+  function walkStartPosition(): { x: number; y: number; z: number } | null {
+    if (!currentFloor) return null;
+    const rooms = detectRooms(currentFloor.walls);
+    let startPos = { x: 0, y: eyeHeight, z: 0 };
+    if (rooms.length > 0) {
+      let largestRoom = rooms[0];
+      let largestArea = 0;
+      for (const room of rooms) {
+        if (room.area > largestArea) {
+          largestArea = room.area;
+          largestRoom = room;
+        }
+      }
+      const poly = getRoomPolygon(largestRoom, currentFloor.walls);
+      if (poly.length > 0) {
+        const centroid = roomCentroid(poly);
+        startPos = { x: centroid.x, y: eyeHeight, z: centroid.y };
+      }
+    } else if (currentFloor.walls.length > 0) {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const w of currentFloor.walls) {
+        for (const p of [w.start, w.end]) {
+          minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+          minZ = Math.min(minZ, p.y); maxZ = Math.max(maxZ, p.y);
+        }
+      }
+      startPos = { x: (minX + maxX) / 2, y: eyeHeight, z: (minZ + maxZ) / 2 };
+    }
+    return startPos;
+  }
+
+  /** Where the headset and 360° photo start: the walkthrough pose, else the centre of the largest room. */
+  function presentationPose(): HeadsetStart {
+    if (walkthroughMode) {
+      return { position: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, yaw: yawOf(camera.quaternion) };
+    }
+    const start = walkStartPosition() ?? { x: 0, y: eyeHeight, z: 0 };
+    const yaw = currentFloor ? deepestViewYaw({ x: start.x, z: start.z }, currentFloor.walls) : 0;
+    return { position: { x: start.x, y: activeFloorElevation + eyeHeight, z: start.z }, yaw };
+  }
+
+  // VR headset presentation (headsetActive is declared with the walkthrough state)
+  let headsetSession: HeadsetSession | null = null;
+  let viewerNotice = $state('');
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+  function showNotice(text: string) {
+    viewerNotice = text;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => { viewerNotice = ''; }, 6000);
+  }
+
+  async function startHeadset() {
+    if (headsetActive || !renderer || !scene || !camera || !container) return;
+    const pose = presentationPose();
+    if (walkthroughMode) exitWalkthroughMode();
+    cancelAIRender();
+    cameraPlacementMode = false;
+    cameraPreviewOpen = false;
+    furniturePlacementMode = false;
+    removeGhostPreview();
+    if (animId !== undefined) { cancelAnimationFrame(animId); animId = undefined; }
+    headsetActive = true;
+    controls.enabled = false;
+    const mode = await detectHeadsetMode();
+    headsetSession = new HeadsetSession(renderer, scene, camera, container, {
+      hint: $t('viewerVR.hint'),
+      exitLabel: $t('viewerVR.exit'),
+      onEnd: () => {
+        headsetSession = null;
+        headsetActive = false;
+        controls.enabled = true;
+        onResize();
+        markSceneDirty();
+      },
+    });
+    try {
+      await headsetSession.start(mode, pose);
+    } catch (error) {
+      console.error(error);
+      headsetSession?.stop();
+      showNotice($t('viewerVR.failed'));
+    }
+  }
+
+  let panoramaBusy = $state(false);
+  async function capturePanorama() {
+    if (panoramaBusy || headsetActive || !renderer || !scene) return;
+    panoramaBusy = true;
+    try {
+      const pose = presentationPose();
+      const blob = await renderPanoramaJPEG(renderer, scene, { position: pose.position, yaw: pose.yaw });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'panorama-360.jpg';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      showNotice($t('viewerVR.panoramaDone'));
+    } catch (error) {
+      console.error(error);
+      showNotice($t('viewerVR.panoramaFailed'));
+    } finally {
+      panoramaBusy = false;
+      markSceneDirty();
+    }
+  }
+
   function enterWalkthroughMode() {
     cancelAIRender();
     cameraPlacementMode = false;
@@ -1840,42 +1955,8 @@
     controls.enabled = false;
 
     // Position camera at eye height in center of floor plan or largest room
-    if (currentFloor) {
-      const rooms = detectRooms(currentFloor.walls);
-      let startPos = { x: 0, y: eyeHeight, z: 0 };
-
-      if (rooms.length > 0) {
-        // Find largest room and position camera at its center
-        let largestRoom = rooms[0];
-        let largestArea = 0;
-
-        for (const room of rooms) {
-          if (room.area > largestArea) {
-            largestArea = room.area;
-            largestRoom = room;
-          }
-        }
-
-        const poly = getRoomPolygon(largestRoom, currentFloor.walls);
-        if (poly.length > 0) {
-          const centroid = roomCentroid(poly);
-          startPos = { x: centroid.x, y: eyeHeight, z: centroid.y };
-        }
-      } else if (currentFloor.walls.length > 0) {
-        // No rooms, use center of floor plan
-        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-        for (const w of currentFloor.walls) {
-          for (const p of [w.start, w.end]) {
-            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-            minZ = Math.min(minZ, p.y); maxZ = Math.max(maxZ, p.y);
-          }
-        }
-        startPos = { x: (minX + maxX) / 2, y: eyeHeight, z: (minZ + maxZ) / 2 };
-      }
-
-      setFloorCameraPose(camera, activeFloorElevation, startPos,
-        { ...startPos, z: startPos.z - 100 });
-    }
+    const startPos = walkStartPosition();
+    if (startPos) setFloorCameraPose(camera, activeFloorElevation, startPos, { ...startPos, z: startPos.z - 100 });
 
     // Three's lock() discards the browser's promise. Handle rejection here so
     // embedded/unsupported browsers can still use keyboard movement and look.
@@ -2027,7 +2108,7 @@
   });
 </script>
 
-<div bind:this={container} class="w-full h-full relative" role="region" aria-label={$t('viewerNav.region')}>
+<div bind:this={container} class="w-full h-full relative" role="region" aria-label={$t('viewerNav.region')} data-headset={headsetActive ? 'true' : undefined}>
   {#if webglUnavailable}
     <div class="flex h-full items-center justify-center p-6">
       <p role="alert" class="max-w-md rounded-lg bg-black/80 px-4 py-3 text-center text-sm text-white">{$t('viewerNav.webglUnavailable')}</p>
@@ -2162,7 +2243,41 @@
       </svg>
     {/if}
     </button>
+
+    <!-- VR headset presentation -->
+    <button
+      onclick={startHeadset}
+      class="p-2 rounded-lg bg-black/70 text-white hover:bg-black/80 transition-colors"
+      title={$t('viewerVR.enterHelp')}
+      aria-label={$t('viewerVR.enter')}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4l-2-3h-2l-2 3H5a2 2 0 0 1-2-2z"/>
+        <circle cx="8" cy="11" r="1.6"/><circle cx="16" cy="11" r="1.6"/>
+      </svg>
+    </button>
+
+    <!-- 360° photo -->
+    <button
+      onclick={capturePanorama}
+      disabled={panoramaBusy}
+      class="p-2 rounded-lg bg-black/70 text-white hover:bg-black/80 transition-colors disabled:opacity-60"
+      title={$t('viewerVR.panoramaHelp')}
+      aria-label={$t('viewerVR.panorama')}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <ellipse cx="12" cy="12" rx="10" ry="4"/><path d="M12 8v8"/><path d="M8.5 12h7"/>
+        <text x="12" y="23" text-anchor="middle" font-size="6" fill="currentColor" stroke="none">360</text>
+      </svg>
+    </button>
   </div><!-- end 3D toolbar row -->
+  {#if viewerNotice}
+    <div role="status" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 max-w-[90%] bg-black/80 text-white px-4 py-2 rounded-lg text-sm backdrop-blur-sm text-center">{viewerNotice}</div>
+  {/if}
+  {#if panoramaBusy}
+    <div role="status" class="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white px-4 py-2 rounded-lg text-sm backdrop-blur-sm">{$t('viewerVR.panoramaWorking')}</div>
+  {/if}
+
 
   {#if cameraPlacementMode && !cameraPlaced}
     <div class="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-black/80 text-white px-4 py-2 rounded-lg text-sm backdrop-blur-sm">
@@ -2535,3 +2650,9 @@
   {/if}
   {/if}<!-- end of the controls that need the renderer -->
 </div>
+
+<style>
+  /* While a headset session runs, only the 3D canvas and the session controls stay visible. */
+  :global([data-headset="true"] > :not(canvas):not([data-headset-ui])) { display: none !important; }
+  :global([data-headset="true"]) { background: #000; }
+</style>

@@ -49,3 +49,16 @@ describe('locale preferences', () => {
     expect(get(t)('settings.title')).toBe(translate('pt', 'settings.title'));
   });
 });
+
+describe('device language', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('opens in Portuguese on a Portuguese device when nothing was saved', () => {
+    vi.stubGlobal('localStorage', { getItem: vi.fn().mockReturnValue(null), setItem: vi.fn() });
+    vi.stubGlobal('navigator', { language: 'pt-BR', languages: ['pt-BR', 'en'] });
+    initializeLocale();
+    expect(get(locale)).toBe('pt');
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] });
+    initializeLocale();
+    expect(get(locale)).toBe('en');
+  });
+});

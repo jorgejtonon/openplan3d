@@ -16,6 +16,7 @@
   import LibraryRestoreDialog from '$lib/components/LibraryRestoreDialog.svelte';
   import { isLibraryBackup, LibraryBackupFileError } from '$lib/services/libraryRestore';
   import AssistantShareDialog from '$lib/components/AssistantShareDialog.svelte';
+  import TechnicalSheetDialog from '$lib/components/TechnicalSheetDialog.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { base } from '$app/paths';
   import { orderedFloors } from '$lib/utils/floors';
@@ -240,6 +241,12 @@
     const p = get(currentProject);
     if (p) exportPDF(p, get(locale));
     exportOpen = false;
+  }
+
+  let sheetProject = $state<import('$lib/models/types').Project | null>(null);
+  function onTechnicalSheet() {
+    exportOpen = false;
+    sheetProject = get(currentProject) ?? null;
   }
 
   function onShareProject() {
@@ -640,6 +647,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 11v6"/><path d="M8 11v6"/><path d="M12 11v6"/></svg>
           {$t('exportMenu.pdf')}
         </button>
+        <button class="w-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 text-left flex items-center gap-2" onclick={onTechnicalSheet}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 15h18"/><path d="M12 15v6"/><path d="M7 7h6v5H7z"/></svg>
+          {$t('sheet.entry')}
+        </button>
         <p class="px-3 pb-2 text-xs text-gray-500">{$t('exportMenu.planHelp')}</p>
         <button class="w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left flex items-center gap-2" onclick={onExportJSON}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -729,5 +740,6 @@
 {#if packageOpen}<ProjectPackageDialog onclose={() => packageOpen = false} onimported={openImportedPackage} />{/if}
 {#if restoreFile}<LibraryRestoreDialog file={restoreFile} onclose={() => restoreFile = null} onrestored={async () => {}} />{/if}
 {#if assistantShareProject}<AssistantShareDialog project={assistantShareProject} onclose={() => assistantShareProject = null} />{/if}
+{#if sheetProject}<TechnicalSheetDialog project={sheetProject} onclose={() => sheetProject = null} />{/if}
 
 <ExportNotice />

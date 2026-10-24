@@ -24,12 +24,19 @@ export const locale = {
   },
 };
 
+function deviceLocale(): Locale {
+  try {
+    const languages = typeof navigator === 'undefined' ? [] : [...(navigator.languages ?? []), navigator.language];
+    return languages.some(language => typeof language === 'string' && language.toLowerCase().startsWith('pt')) ? 'pt' : 'en';
+  } catch { return 'en'; }
+}
+
 /** Run after hydration; SSR and the first client render always agree on English. */
 export function initializeLocale() {
   let saved: unknown;
   try { saved = localStorage.getItem('o3d_locale'); } catch { /* Storage can be disabled. */ }
-  // Keep English until the remaining interface has been translated; users opt in.
-  locale.set(isLocale(saved) ? saved : 'en');
+  // A saved choice wins; otherwise follow the device language (Portuguese or English).
+  locale.set(isLocale(saved) ? saved : deviceLocale());
 }
 
 /** Svelte's $t subscription updates labels without remounting dialogs or inputs. */
