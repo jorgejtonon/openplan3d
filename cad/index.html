@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR" data-ml-ui-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" href="../favicon.svg" />
+    <link rel="manifest" href="../manifest.webmanifest" />
+    <title>DWG/DXF · OpenPlan3D</title>
+    <style>
+      :root {
+        --bg: #0f172a; --panel: #111827; --line: #334155; --text: #e5e7eb; --muted: #94a3b8; --accent: #3b82f6; --danger: #f87171; --ok: #34d399;
+        --ml-ui-text: #e5eaf3; --ml-ui-text-muted: #cfd3dc; --ml-ui-bg: #1d1e1f; --ml-ui-bg-page: #141414; --ml-ui-bg-fill: #262727;
+        --ml-ui-border: #4c4d4f; --ml-ui-shadow: 0 6px 18px rgba(0,0,0,.35); --ml-ui-overlay: rgba(0,0,0,.5); --ml-ui-accent: #409eff; --ml-ui-accent-alt: #909399; --ml-ui-danger: #f56c6c;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; overflow: hidden; color-scheme: dark; }
+      .app { display: flex; flex-direction: column; height: 100%; }
+      header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); background: var(--panel); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
+      header a.back { color: var(--text); text-decoration: none; padding: 8px 10px; border-radius: 8px; white-space: nowrap; }
+      header a.back:hover { background: #1f2937; }
+      #fileName { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 14px; }
+      button { font: inherit; color: inherit; cursor: pointer; }
+      .btn { border: 1px solid var(--line); background: #1f2937; border-radius: 10px; padding: 8px 12px; white-space: nowrap; }
+      .btn:hover:not(:disabled) { background: #273449; }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+      .btn:disabled { opacity: .45; cursor: default; }
+      main { position: relative; flex: 1 1 auto; min-height: 0; }
+      #cad-container { position: absolute; inset: 0; }
+      #emptyState { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: var(--bg); z-index: 5; }
+      #emptyState h1 { font-size: 22px; }
+      #emptyState p { color: var(--muted); max-width: 30rem; }
+      #emptyState .btn.primary { font-size: 17px; padding: 14px 22px; border-radius: 14px; }
+      .features { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 34rem; }
+      .features span { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: 13px; color: var(--muted); }
+      #toast { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translateX(-50%); max-width: min(92vw, 34rem); background: #020617ee; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; z-index: 100; display: none; }
+      #toast.error { border-color: var(--danger); }
+      #toast.ok { border-color: var(--ok); }
+      dialog { margin: auto; width: min(38rem, calc(100vw - 16px)); max-height: calc(100vh - 24px); background: #0b1220; color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 0; }
+      dialog::backdrop { background: rgba(0,0,0,.6); }
+      .dlg { display: flex; flex-direction: column; max-height: calc(100vh - 26px); }
+      .dlg-head { padding: 14px 16px 8px; border-bottom: 1px solid #1e293b; }
+      .dlg-head h2 { font-size: 18px; }
+      .dlg-head p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+      .dlg-body { padding: 12px 16px; overflow: auto; display: grid; gap: 14px; }
+      .dlg-foot { padding: 10px 16px; border-top: 1px solid #1e293b; display: flex; justify-content: flex-end; gap: 8px; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      @media (min-width: 560px) { .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+      label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+      label.f.wide { grid-column: 1 / -1; }
+      input[type=text], select, textarea { width: 100%; background: #111827; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; }
+      textarea { min-height: 64px; resize: vertical; }
+      .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+      .check input { width: 18px; height: 18px; }
+      .status { border-radius: 10px; padding: 9px 12px; font-size: 14px; }
+      .status.ok { background: #064e3b; color: #d1fae5; }
+      .status.warn { background: #78350f; color: #fef3c7; }
+      .status.info { background: #1e3a8a; color: #dbeafe; }
+      legend { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 6px; }
+      fieldset { border: 0; }
+      .hide { display: none !important; }
+      @media (max-width: 520px) { header .label-long { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <a class="back" href="../" title="Voltar ao OpenPlan3D">← <span class="label-long">OpenPlan3D</span></a>
+        <span id="fileName">Visualizador DWG/DXF</span>
+        <button class="btn" id="openBtn" type="button">Abrir</button>
+        <button class="btn" id="saveBtn" type="button" disabled title="Salvar o desenho editado em DXF">DXF</button>
+        <button class="btn primary" id="plotBtn" type="button" disabled>Plotar PDF</button>
+      </header>
+      <main id="viewerPane">
+        <div id="cad-container"></div>
+        <div id="emptyState">
+          <h1>Visualizador DWG/DXF</h1>
+          <p>Abra plantas e projetos em DWG ou DXF do celular, do WhatsApp ou do Drive. Tudo roda no aparelho: o arquivo não é enviado para nenhum servidor.</p>
+          <button class="btn primary" id="emptyOpenBtn" type="button">Abrir DWG ou DXF</button>
+          <div class="features"><span>Zoom com dois dedos</span><span>Camadas</span><span>Medir distância e área</span><span>Buscar texto</span><span>Marcações de revisão</span><span>Editar e salvar DXF</span><span>Plotar PDF na escala com carimbo</span></div>
+          <a href="./LICENCAS.txt" target="_blank" rel="noopener" style="color: var(--muted); font-size: 12px">Licenças e código-fonte</a>
+        </div>
+      </main>
+    </div>
+    <input type="file" id="fileInput" accept=".dwg,.dxf,application/acad,image/vnd.dwg,image/x-dwg,application/dxf,image/vnd.dxf" hidden />
+    <div id="toast" role="status"></div>
+
+    <dialog id="plotDialog" aria-labelledby="plotTitle">
+      <form method="dialog" class="dlg" id="plotForm">
+        <div class="dlg-head">
+          <h2 id="plotTitle">Plotar em PDF</h2>
+          <p>Desenho vetorial na escala real, em folha padrão com carimbo. Imprima em 100% (tamanho real), nunca "ajustar à página".</p>
+        </div>
+        <div class="dlg-body">
+          <div class="grid four">
+            <label class="f">Folha
+              <select name="format"><option>A4</option><option selected>A3</option><option>A2</option><option>A1</option><option>A0</option></select>
+            </label>
+            <label class="f">Orientação
+              <select name="orientation"><option value="landscape" selected>Paisagem</option><option value="portrait">Retrato</option></select>
+            </label>
+            <label class="f">Escala
+              <select name="scale" id="scaleSelect"></select>
+            </label>
+            <label class="f">Unidade do desenho
+              <select name="units" id="unitsSelect">
+                <option value="auto">Do arquivo</option><option value="mm">Milímetros</option><option value="cm">Centímetros</option><option value="m">Metros</option>
+              </select>
+            </label>
+            <label class="f">Área
+              <select name="area"><option value="view" selected>O que está na tela</option><option value="extents">Desenho inteiro</option><option value="all">Tudo, até objetos distantes</option></select>
+            </label>
+            <label class="f">Cores
+              <select name="mono"><option value="1" selected>Preto (monocromático)</option><option value="0">Cores do desenho</option></select>
+            </label>
+            <label class="check" style="grid-column: span 2"><input type="checkbox" name="lineweights" checked /> Espessuras de linha</label>
+          </div>
+          <div id="plotStatus" class="status info">—</div>
+          <fieldset>
+            <legend>Carimbo</legend>
+            <div class="grid">
+              <label class="f wide">Empresa / escritório<input type="text" name="company" autocomplete="organization" /></label>
+              <label class="f wide">Obra / projeto<input type="text" name="work" /></label>
+              <label class="f wide">Endereço<input type="text" name="address" autocomplete="street-address" /></label>
+              <label class="f wide">Proprietário / cliente<input type="text" name="client" /></label>
+              <label class="f wide">Título do desenho<input type="text" name="drawingTitle" placeholder="Vazio: nome do arquivo" /></label>
+              <label class="f wide">Responsável técnico<input type="text" name="responsible" autocomplete="name" /></label>
+              <label class="f">CREA / CAU<input type="text" name="registry" /></label>
+              <label class="f">ART / RRT<input type="text" name="art" inputmode="numeric" /></label>
+              <label class="f">Desenho<input type="text" name="drawnBy" /></label>
+              <label class="f">Revisão<input type="text" name="revision" /></label>
+              <label class="f">Folha<input type="text" name="sheetNumber" placeholder="01/01" /></label>
+              <label class="f">Data<input type="text" name="date" placeholder="Vazio: hoje" /></label>
+              <label class="f wide">Observações<textarea name="notes"></textarea></label>
+            </div>
+            <p style="color: var(--muted); font-size: 12px; margin-top: 6px">Nome, CREA, empresa e desenhista ficam salvos neste aparelho e também aparecem na prancha técnica do editor de plantas.</p>
+          </fieldset>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" value="cancel" type="submit" formnovalidate>Fechar</button>
+          <button class="btn primary" id="plotGo" type="button">Gerar PDF</button>
+        </div>
+      </form>
+    </dialog>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

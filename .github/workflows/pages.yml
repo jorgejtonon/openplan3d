@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +30,8 @@ jobs:
           NPM_CONFIG_INCLUDE: dev
       - name: Testes
         run: npm test
+      - name: Gerar o visualizador DWG/DXF
+        run: npm run build:cad
       - name: Gerar o site estático
         run: npx vite build
         env:

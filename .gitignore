@@ -37,3 +37,6 @@ vite.config.ts.timestamp-*
 # (a chave de uso próprio em android/keystore é versionada de propósito)
 *.jks
 SEGREDOS-GITHUB.txt
+
+# DWG/DXF viewer bundle, built from cad/ by "npm run build:cad"
+/static/cad

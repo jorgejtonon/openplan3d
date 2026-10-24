@@ -1,7 +1,8 @@
-> ## 🇧🇷 Versão de Jorge Tonon — prancha técnica, óculos VR, foto 360° e app Android
+> ## 🇧🇷 Versão de Jorge Tonon — prancha técnica, óculos VR, foto 360°, visualizador DWG e app Android
 >
 > - **Abrir o app:** https://jorgejtonon.github.io/openplan3d/ (no Chrome do Android: **Instalar aplicativo**)
 > - **APK Android (última versão):** https://github.com/jorgejtonon/openplan3d/releases/latest/download/OpenPlan3D.apk
+> - **Visualizador DWG/DXF com plotagem em escala:** https://jorgejtonon.github.io/openplan3d/cad/
 > - **Guia em português:** [GUIA-PT.md](GUIA-PT.md)
 >
 > Baseado no [OpenPlan3D](https://github.com/laanlabs/openPlan3D) da Laan Labs, licença MIT.

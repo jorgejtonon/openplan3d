@@ -198,6 +198,19 @@
           </div>
         </button>
 
+        <a
+          href={`${base}/cad/index.html`}
+          data-sveltekit-reload
+          onclick={() => { try { localStorage.setItem('hasSeenWelcome', 'true'); } catch {} }}
+          class="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-left"
+        >
+          <span class="text-2xl">📏</span>
+          <div>
+            <div class="font-semibold text-gray-800">{$t('welcome.cadViewer')}</div>
+            <div class="text-xs text-gray-400">{$t('welcome.cadViewerDesc')}</div>
+          </div>
+        </a>
+
         <button
           onclick={startTour}
           class="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all text-left"

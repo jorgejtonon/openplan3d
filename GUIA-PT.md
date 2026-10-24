@@ -1,6 +1,6 @@
-# OpenPlan3D — versão com prancha técnica, VR e foto 360°
+# OpenPlan3D — versão com prancha técnica, VR, foto 360° e visualizador DWG
 
-Esta cópia do [OpenPlan3D](https://github.com/laanlabs/openPlan3D) (licença MIT) acrescenta três recursos para apresentação e entrega de projetos de engenharia.
+Esta cópia do [OpenPlan3D](https://github.com/laanlabs/openPlan3D) (licença MIT) acrescenta quatro recursos para apresentação e entrega de projetos de engenharia.
 
 ## O que há de novo
 
@@ -26,6 +26,18 @@ Na vista **3D**, toque no ícone de **óculos**.
 
 ### 3. Foto 360°
 Na vista **3D**, toque em **Foto 360°**. É gerado um `panorama-360.jpg` (4096 × 2048, com metadados *Photo Sphere*) que abre como foto 360° no Google Fotos, no Facebook e em aplicativos de VR. Também pode ser enviado ao cliente pelo WhatsApp.
+
+### 4. Visualizador DWG/DXF com plotagem (tipo DWG FastView)
+Na tela de projetos, toque em **Visualizador DWG/DXF** e depois em **Abrir**. Abre arquivos do celular, do WhatsApp ou do Drive; nada é enviado para servidor.
+
+- Zoom com dois dedos, camadas (ligar, congelar, bloquear), buscar texto, **medir** distância, área, ângulo e coordenadas, marcações de revisão (nuvem, seta, texto, selo) e edição básica (linha, polilinha, círculo, arco, cota, copiar, mover, girar…), com a linha de comando e as mensagens **em português**.
+- **Mira de precisão:** segure o dedo na tela por meio segundo; aparece uma mira acima do dedo que se prende aos pontos do desenho.
+- **DXF:** salva o desenho editado em DXF.
+- **Plotar PDF:** folha A4 a A0, escala exata (1:1 a 1:10.000, incluindo escalas de redes e de implantação) ou automática, área "o que está na tela" ou o desenho inteiro, preto ou com as cores do desenho, espessuras de linha e o **mesmo carimbo** da prancha técnica. A janela avisa se o desenho não cabe na escala escolhida e sugere a escala que cabe.
+- **Unidade do desenho:** a escala usa a unidade gravada no arquivo (INSUNITS). Desenhos sem unidade são lidos em milímetros; se a planta estiver em metros (comum em topografia e redes), escolha **Metros** em "Unidade do desenho".
+- Sem internet, os textos usam uma fonte aberta parecida; com internet, as fontes originais do desenho (e elas ficam guardadas para a próxima vez).
+
+> Como na prancha técnica, **imprima em 100% (tamanho real)**. Confira na escala gráfica da folha.
 
 ## Aplicativo para Android
 
@@ -60,10 +72,11 @@ O endereço é HTTPS, necessário para o giroscópio, a tela cheia e o WebXR fun
 npm ci
 npm run dev            # editor em http://localhost:5173
 npm test               # testes
+npm run build:cad      # visualizador DWG/DXF (gera static/cad; rode antes do build do site)
 STATIC_SITE=1 VITE_STATIC_SITE=1 NODE_ENV=production npx vite build   # site estático em ./site
 ```
 
 ## Observações
 - A versão estática não tem os recursos que dependem do servidor original (links de compartilhamento com o app do iPhone e envio ao assistente).
 - As estatísticas de uso (Firebase) dos autores originais ficam **desligadas** por padrão. Ative com `PUBLIC_ENABLE_ANALYTICS=true` apenas se configurar o seu próprio projeto.
-- Licença MIT: mantenha o arquivo `LICENSE` ao redistribuir.
+- Licença MIT: mantenha o arquivo `LICENSE` ao redistribuir. O visualizador DWG inclui o LibreDWG (GPL-3.0); veja `cad/README.md`.

@@ -29,6 +29,8 @@ jobs:
           NPM_CONFIG_INCLUDE: dev
       - name: Testes
         run: npm test
+      - name: Gerar o visualizador DWG/DXF
+        run: npm run build:cad
       - name: Gerar o app web (sem servidor)
         run: npx vite build && cp site/index.html site/404.html
         env:

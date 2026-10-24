@@ -1,0 +1,30 @@
+{
+  "name": "openplan3d-cad",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Visualizador e editor de DWG/DXF com plotagem em PDF na escala (baseado no mlightcad cad-viewer, MIT)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@mlightcad/cad-pdf-plugin": "1.7.6",
+    "@mlightcad/cad-simple-ui-plugin": "1.7.6",
+    "@mlightcad/cad-simple-viewer": "1.7.6",
+    "@mlightcad/data-model": "1.15.14",
+    "@mlightcad/libredwg-converter": "3.15.14",
+    "@mlightcad/mtext-parser": "1.5.5",
+    "@mlightcad/mtext-renderer": "0.13.4",
+    "@mlightcad/pdf-renderer": "1.7.6",
+    "@mlightcad/three-renderer": "1.7.6",
+    "lodash-es": "4.17.21",
+    "pdf-lib": "1.17.1",
+    "three": "0.172.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vite-plugin-static-copy": "4.1.1"
+  }
+}

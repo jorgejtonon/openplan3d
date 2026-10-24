@@ -1,0 +1,16 @@
+Visualizador DWG/DXF do OpenPlan3D — componentes de terceiros
+
+Código-fonte completo: https://github.com/jorgejtonon/openplan3d (pasta cad/)
+
+Este pacote contém o LibreDWG (GPL-3.0). Por isso o pacote do visualizador, como um todo, é
+distribuído nos termos da GNU General Public License versão 3: https://www.gnu.org/licenses/gpl-3.0.html
+
+- @mlightcad/libredwg-web 0.8.2 e @mlightcad/libredwg-converter 3.15.14 — GPL-3.0
+  (LibreDWG, Free Software Foundation; https://www.gnu.org/software/libredwg/)
+- @mlightcad/cad-simple-viewer, cad-simple-ui-plugin, cad-pdf-plugin, pdf-renderer, three-renderer 1.7.6,
+  data-model 1.15.14, mtext-renderer 0.13.4 — MIT, Copyright (c) 2026 mlightcad
+- three 0.172.0 — MIT, Copyright (c) 2010-2025 three.js authors
+- pdf-lib 1.17.1 — MIT, Copyright (c) 2019 Andrew Dillon
+- jsPDF — MIT, Copyright (c) 2010-2025 James Hall, yWorks GmbH
+- lodash-es 4.17.21 — MIT, Copyright OpenJS Foundation and other contributors
+- Noto Sans (cad-data/fonts/noto-sans.woff) — SIL Open Font License 1.1, Copyright The Noto Project Authors
