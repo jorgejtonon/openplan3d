@@ -2,8 +2,13 @@ apply plugin: 'com.android.application'
 
 // CI sets these: each GitHub build gets a higher version, so the phone accepts it as an update.
 def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer
-// Optional stable signature (GitHub secrets): updates then install over the previous version.
-def releaseKeystore = System.getenv('ANDROID_KEYSTORE_PATH')
+// Fixed signature kept in android/keystore (personal-use app): every build installs over the last.
+// ANDROID_KEYSTORE_PATH and friends still override it when set.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore/keystore.properties')
+if (keystorePropsFile.exists()) keystorePropsFile.withInputStream { keystoreProps.load(it) }
+def releaseKeystore = System.getenv('ANDROID_KEYSTORE_PATH') ?: (keystoreProps['storeFile'] ? rootProject.file("keystore/${keystoreProps['storeFile']}").path : null)
+def signingValue = { String env, String prop -> System.getenv(env) ?: keystoreProps[prop] }
 
 android {
     namespace = "br.com.engenheirojorgetonon.openplan3d"
@@ -25,9 +30,9 @@ android {
         release {
             if (releaseKeystore) {
                 storeFile file(releaseKeystore)
-                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('ANDROID_KEY_ALIAS')
-                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+                storePassword signingValue('ANDROID_KEYSTORE_PASSWORD', 'storePassword')
+                keyAlias signingValue('ANDROID_KEY_ALIAS', 'keyAlias')
+                keyPassword signingValue('ANDROID_KEY_PASSWORD', 'keyPassword')
             }
         }
     }

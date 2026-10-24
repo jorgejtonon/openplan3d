@@ -17,8 +17,6 @@ jobs:
     # 24.04 ships the Android SDK; ubuntu-latest is moving to Ubuntu 26.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,16 +37,14 @@ jobs:
           VITE_STATIC_SITE: '1'
           BASE_PATH: ''
       - name: Copiar para o projeto Android
-        if: env.HAS_KEYSTORE == 'true'
         run: npx cap sync android
       - uses: actions/setup-java@v5
-        if: env.HAS_KEYSTORE == 'true'
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
+
       - name: Preparar o Android SDK
-        if: env.HAS_KEYSTORE == 'true'
         run: |
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           if [ -z "$SDK" ] || [ ! -d "$SDK" ]; then
@@ -66,34 +62,7 @@ jobs:
           # Gradle downloads the build-tools it needs itself; this only saves time.
           "$SDKMANAGER" --sdk_root="$SDK" "build-tools;36.0.0" || true
 
-      - name: Conferir a chave de assinatura
-        if: env.HAS_KEYSTORE == 'true'
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          # Spaces and line breaks picked up when pasting are not part of base64.
-          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' > "$RUNNER_TEMP/keystore.b64"
-          chars=$(wc -c < "$RUNNER_TEMP/keystore.b64")
-          echo "::notice::ANDROID_KEYSTORE_BASE64: $chars caracteres; senha: ${#ANDROID_KEYSTORE_PASSWORD}; alias: ${#ANDROID_KEY_ALIAS}; senha da chave: ${#ANDROID_KEY_PASSWORD}"
-          if ! base64 -d "$RUNNER_TEMP/keystore.b64" > "$RUNNER_TEMP/openplan3d.keystore" 2>/dev/null; then
-            echo "::error::ANDROID_KEYSTORE_BASE64 não é um texto base64 válido ($chars caracteres). Cole só a linha longa do SEGREDOS-GITHUB.txt, inteira, sem o rótulo 'Valor'."
-            exit 1
-          fi
-          if [ "$ANDROID_KEY_PASSWORD" != "$ANDROID_KEYSTORE_PASSWORD" ]; then
-            echo "::error::ANDROID_KEY_PASSWORD precisa ser igual a ANDROID_KEYSTORE_PASSWORD (a mesma senha)."
-            exit 1
-          fi
-          if ! keytool -list -keystore "$RUNNER_TEMP/openplan3d.keystore" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" > /dev/null 2>&1; then
-            echo "::error::A chave abriu, mas a senha (ANDROID_KEYSTORE_PASSWORD) ou o alias (ANDROID_KEY_ALIAS = openplan3d) não conferem."
-            exit 1
-          fi
-          echo "::notice::Chave de assinatura conferida."
-
-      - name: Compilar APK (assinatura fixa, com os segredos do repositório)
-        if: env.HAS_KEYSTORE == 'true'
+      - name: Compilar APK (assinatura fixa em android/keystore)
         run: |
           cd android && chmod +x gradlew
           if ! ./gradlew --no-daemon assembleRelease > "$RUNNER_TEMP/gradle.log" 2>&1; then
@@ -105,25 +74,14 @@ jobs:
           fi
           tail -5 "$RUNNER_TEMP/gradle.log"
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/OpenPlan3D.apk"
-        env:
-          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/openplan3d.keystore
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
-      - name: Aviso — chave de assinatura não cadastrada
-        if: env.HAS_KEYSTORE != 'true'
-        run: |
-          echo "::warning::APK não gerado: cadastre os 4 segredos ANDROID_* (arquivo SEGREDOS-GITHUB.txt) em Settings → Secrets and variables → Actions e rode este workflow de novo. Sem assinatura fixa, cada versão exigiria desinstalar o app e apagaria os projetos salvos nele."
+          echo "::notice::APK gerado: $(du -h "$GITHUB_WORKSPACE/OpenPlan3D.apk" | cut -f1)"
 
       - uses: actions/upload-artifact@v4
-        if: env.HAS_KEYSTORE == 'true'
         with:
           name: OpenPlan3D-apk
           path: OpenPlan3D.apk
 
       - name: Publicar em Releases (link fixo para o celular)
-        if: env.HAS_KEYSTORE == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}

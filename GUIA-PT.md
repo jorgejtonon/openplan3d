@@ -43,7 +43,7 @@ A cada envio para `main`, o workflow **Gerar APK Android** compila o app e publi
 3. No app, PDFs, fotos 360° e backups são salvos em **Documentos/OpenPlan3D** e abrem o menu **Compartilhar** (WhatsApp, Drive, e-mail).
 4. O botão **Voltar** do Android fecha o VR e as janelas antes de sair da tela.
 
-**Assinatura fixa (recomendado):** cadastre os 4 segredos do arquivo `SEGREDOS-GITHUB.txt` em **Settings → Secrets and variables → Actions**. Sem eles, o APK sai com assinatura de teste e cada nova versão exige desinstalar a anterior, o que apaga os projetos salvos no app.
+**Assinatura:** o app é de uso próprio, então a chave de assinatura fica no repositório (`android/keystore`) e não precisa de senha cadastrada no GitHub. Todas as versões instalam por cima da anterior, sem perder os projetos.
 
 > O VR imersivo WebXR (Meta Quest) funciona no navegador, não dentro do APK. No celular com óculos tipo Cardboard, os dois funcionam.
 
