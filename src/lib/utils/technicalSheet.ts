@@ -986,7 +986,10 @@ export function buildTechnicalSheets(project: Project, options: TechnicalSheetOp
   return { pdf, pages: total, entries, overflow };
 }
 
+/** File name safe for every browser's download handling: no accents, long dashes or symbols. */
 export function technicalSheetFilename(project: Project, options: TechnicalSheetOptions): string {
-  const base = (options.titleBlock.work || project.name || 'planta').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'planta';
+  const raw = (options.titleBlock.work || project.name || 'planta').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const base = raw.replace(/[\u2010-\u2015]/g, '-').replace(/[^A-Za-z0-9 ._()-]+/g, '-')
+    .replace(/\s+/g, ' ').replace(/-{2,}/g, '-').replace(/^[\s.-]+|[\s.-]+$/g, '').slice(0, 80) || 'planta';
   return `${base} - ${options.format}.pdf`;
 }

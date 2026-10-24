@@ -179,5 +179,7 @@ describe('technical sheet PDF', () => {
   it('names the file after the work', () => {
     expect(technicalSheetFilename(template('Studio Apartment'), options({ titleBlock: { ...defaultSheetOptions().titleBlock, work: 'Casa / Lote 3' } })))
       .toBe('Casa - Lote 3 - A3.pdf');
+    expect(technicalSheetFilename(template('Studio Apartment'), options({ format: 'A1', titleBlock: { ...defaultSheetOptions().titleBlock, work: 'Residência Unifamiliar — Lote 12' } })))
+      .toBe('Residencia Unifamiliar - Lote 12 - A1.pdf');
   });
 });
