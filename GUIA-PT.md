@@ -59,6 +59,23 @@ Na tela de projetos, toque em **Visualizador DWG/DXF**. Dá para começar um **N
 
 > Imprima sempre em **100% (tamanho real)** e confira na escala gráfica da folha.
 
+## Instalar no Android: regras de 2026 no Brasil
+
+Desde 30/09/2026, em celulares Android certificados no Brasil, a instalação normal de apps de desenvolvedores **não cadastrados** no Google é bloqueada. Isso vale também para APK baixado fora da Play Store. Caminhos para usar o OpenPlan3D:
+
+1. **Sem APK (recomendado):** abra https://jorgejtonon.github.io/openplan3d/ no **Chrome**, toque no menu ⋮ e depois em **Instalar app** (ou "Adicionar à tela inicial"). O app ganha um ícone, abre em tela cheia e funciona sem internet depois da primeira abertura. Não passa pela verificação do Google.
+2. **APK com cadastro gratuito (uso pessoal):** crie no [Android Developer Console](https://developer.android.com/developer-verification/guides/android-developer-console) uma conta pessoal de **distribuição limitada** (estudante ou hobby): sem taxa, sem documento, até 20 aparelhos. Em **Pacotes**, registre:
+   - **Nome do pacote:** `br.com.engenheirojorgetonon.openplan3d`
+   - **Impressão SHA-256 da chave:** `F5:65:BE:DF:30:0A:4B:7A:03:50:55:02:24:6C:B8:2D:DF:FA:27:0F:49:00:5E:C4:95:50:9B:14:F7:80:C1:37`
+   - **Prova de posse:** o console mostra um trecho para colocar na pasta *assets* de um APK assinado com a mesma chave. Esse trecho vai em `android/app/src/main/assets/` e o GitHub gera o APK de prova.
+3. **Modo avançado, sem cadastro:** ative o modo desenvolvedor, reinicie, aguarde 24 h e confirme com digital ou PIN. Depois disso, o instalador oferece **Instalar mesmo assim**.
+4. **Pelo computador:** com a depuração USB ligada, `adb install OpenPlan3D.apk`. O ADB não passa pela verificação.
+
+**Download do APK travado em 100%:** o arquivo costuma já estar em **Arquivos → Downloads**. Se não estiver:
+- abra o link no Chrome de verdade (⋮ → "Abrir no Chrome"), e não na janela interna de outro app;
+- espere a verificação de segurança e toque em "Baixar mesmo assim";
+- ou use "Baixar novamente".
+
 ## Aplicativo para Android
 
 ### Opção A — Instalar pelo Chrome (mais simples, VR completo)
