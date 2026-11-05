@@ -61,7 +61,7 @@ Na tela de projetos, toque em **Visualizador DWG/DXF**. Dá para começar um **N
 
 ## Instalar no Android: regras de 2026 no Brasil
 
-Desde 30/09/2026, em celulares Android certificados no Brasil, a instalação normal de apps de desenvolvedores **não cadastrados** no Google é bloqueada. Isso vale também para APK baixado fora da Play Store. Caminhos para usar o OpenPlan3D:
+Desde 30/09/2026, o Google começou a exigir no Brasil o cadastro dos desenvolvedores de apps para Android, e a instalação de apps não cadastrados **pode** ser bloqueada em celulares certificados. Não é garantido: no celular do Jorge, as versões publicadas em 24/10/2026 instalaram normalmente. Se o instalador recusar o APK, use um destes caminhos:
 
 1. **Sem APK (recomendado):** abra https://jorgejtonon.github.io/openplan3d/ no **Chrome**, toque no menu ⋮ e depois em **Instalar app** (ou "Adicionar à tela inicial"). O app ganha um ícone, abre em tela cheia e funciona sem internet depois da primeira abertura. Não passa pela verificação do Google.
 2. **APK com cadastro gratuito (uso pessoal):** crie no [Android Developer Console](https://developer.android.com/developer-verification/guides/android-developer-console) uma conta pessoal de **distribuição limitada** (estudante ou hobby): sem taxa, sem documento, até 20 aparelhos. Em **Pacotes**, registre:
