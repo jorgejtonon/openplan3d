@@ -2,7 +2,7 @@
 <html lang="pt-BR" data-ml-ui-theme="dark">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0f172a" />
     <link rel="icon" href="../favicon.svg" />
     <link rel="manifest" href="../manifest.webmanifest" />
@@ -15,7 +15,11 @@
       }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body { height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; overflow: hidden; color-scheme: dark; }
-      .app { display: flex; flex-direction: column; height: 100%; }
+      .app { display: flex; flex-direction: column; height: 100%;
+        /* Room for the Android buttons and side cut-outs when the system draws the page under them. */
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+        padding-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+        padding-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px)); }
       header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top)); background: var(--panel); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
       header a.back { color: var(--text); text-decoration: none; padding: 8px 10px; border-radius: 8px; white-space: nowrap; }
       header a.back:hover { background: #1f2937; }
@@ -66,6 +70,14 @@
       .props select { width: auto; max-width: 11rem; padding: 5px 8px; font-size: 13px; }
       .props-info { flex: 1 0 100%; color: var(--text); }
       @media (max-width: 520px) { header .label-long { display: none; } }
+      @media (max-width: 480px) {
+        header { gap: 5px; padding-left: 6px; padding-right: 6px; }
+        header a.back { padding: 6px 6px; }
+        header .btn { padding: 6px 9px; font-size: 14px; border-radius: 9px; }
+        #fileName { font-size: 12px; }
+      }
+      .btn.icon { padding: 6px 8px; line-height: 0; }
+      .btn.icon svg { width: 18px; height: 18px; }
     </style>
   </head>
   <body>
@@ -73,6 +85,7 @@
       <header>
         <a class="back" href="../" title="Voltar ao OpenPlan3D">← <span class="label-long">OpenPlan3D</span></a>
         <span id="fileName">Visualizador DWG/DXF</span>
+        <button class="btn icon" id="fullBtn" type="button" title="Tela cheia: esconde a barra do celular" aria-label="Tela cheia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
         <button class="btn" id="newBtn" type="button">Novo</button>
         <button class="btn" id="openBtn" type="button">Abrir</button>
         <button class="btn" id="saveBtn" type="button" disabled title="Salvar o desenho em DXF (abre no AutoCAD e em outros programas CAD)">Salvar</button>

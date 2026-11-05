@@ -8,6 +8,11 @@ const config: CapacitorConfig = {
   android: {
     backgroundColor: '#0f172a',
   },
+  plugins: {
+    // The pages do not ask for edge-to-edge (no viewport-fit=cover), so the app sits between the
+    // status bar and the Android buttons instead of under them; light icons on the dark bars.
+    SystemBars: { style: 'DARK', insetsHandling: 'css' },
+  },
 };
 
 export default config;

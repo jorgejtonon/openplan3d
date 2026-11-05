@@ -4,6 +4,7 @@ import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter';
 import { acuiRegisterSimpleUiPlugin } from '@mlightcad/cad-simple-ui-plugin/register';
 import { emptyTitleBlock, type TitleBlockData, type SheetFormat, type SheetOrientation } from '$lib/utils/sheetFrame';
 import { installNativeHooks, isNativeApp } from '$lib/native/appBridge';
+import { SystemBars } from '@capacitor/core';
 import { PLOT_SCALES, drawingExtents, isUsableBox, planPlot, plotDrawing, plotFileName, type Box2, type DrawingUnitChoice, type PlotArea, type PlotOptions } from './plot';
 import { applyPortuguese } from './i18nPt';
 import { registerEditorCommands } from './commands/register';
@@ -200,6 +201,32 @@ async function openBuffer(name: string, content: () => Promise<ArrayBuffer>, don
     return false;
   }
 }
+
+/* ------------------------------ Full screen ------------------------------ */
+
+// Hides the phone's status bar and buttons (in the app) or uses the browser's full screen, for
+// more drawing area; a swipe from the edge shows the Android buttons for a moment.
+const fullBtn = $<HTMLButtonElement>('fullBtn');
+let fullScreen = false;
+function showFullScreenState(on: boolean) {
+  fullScreen = on;
+  fullBtn.classList.toggle('primary', on);
+  fullBtn.title = on ? 'Sair da tela cheia' : 'Tela cheia: esconde a barra do celular';
+}
+async function setFullScreen(on: boolean) {
+  if (isNativeApp()) {
+    if (on) await SystemBars.hide(); else await SystemBars.show();
+  } else if (on) {
+    await document.documentElement.requestFullscreen?.({ navigationUI: 'hide' });
+  } else if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  }
+  showFullScreenState(on);
+}
+fullBtn.addEventListener('click', () => {
+  setFullScreen(!fullScreen).catch(error => { console.warn('full screen', error); toast('Este aparelho não permitiu a tela cheia.', 'error'); });
+});
+document.addEventListener('fullscreenchange', () => { if (!isNativeApp()) showFullScreenState(!!document.fullscreenElement); });
 
 /* ------------------------------ New project and draft ------------------------------ */
 
