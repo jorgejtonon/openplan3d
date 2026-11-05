@@ -27,17 +27,37 @@ Na vista **3D**, toque no ícone de **óculos**.
 ### 3. Foto 360°
 Na vista **3D**, toque em **Foto 360°**. É gerado um `panorama-360.jpg` (4096 × 2048, com metadados *Photo Sphere*) que abre como foto 360° no Google Fotos, no Facebook e em aplicativos de VR. Também pode ser enviado ao cliente pelo WhatsApp.
 
-### 4. Visualizador DWG/DXF com plotagem (tipo DWG FastView)
-Na tela de projetos, toque em **Visualizador DWG/DXF** e depois em **Abrir**. Abre arquivos do celular, do WhatsApp ou do Drive; nada é enviado para servidor.
+### 4. Projetos DWG/DXF: desenhar, editar, salvar e plotar
+Na tela de projetos, toque em **Visualizador DWG/DXF**. Dá para começar um **Novo projeto** ou **Abrir** um DWG/DXF do celular, do WhatsApp ou do Drive. Nada é enviado para servidor.
 
-- Zoom com dois dedos, camadas (ligar, congelar, bloquear), buscar texto, **medir** distância, área, ângulo e coordenadas, marcações de revisão (nuvem, seta, texto, selo) e edição básica (linha, polilinha, círculo, arco, cota, copiar, mover, girar…), com a linha de comando e as mensagens **em português**.
-- **Mira de precisão:** segure o dedo na tela por meio segundo; aparece uma mira acima do dedo que se prende aos pontos do desenho.
-- **DXF:** salva o desenho editado em DXF.
-- **Plotar PDF:** folha A4 a A0, escala exata (1:1 a 1:10.000, incluindo escalas de redes e de implantação) ou automática, área "o que está na tela" ou o desenho inteiro, preto ou com as cores do desenho, espessuras de linha e o **mesmo carimbo** da prancha técnica. A janela avisa se o desenho não cabe na escala escolhida e sugere a escala que cabe.
-- **Unidade do desenho:** a escala usa a unidade gravada no arquivo (INSUNITS). Desenhos sem unidade são lidos em milímetros; se a planta estiver em metros (comum em topografia e redes), escolha **Metros** em "Unidade do desenho".
-- Sem internet, os textos usam uma fonte aberta parecida; com internet, as fontes originais do desenho (e elas ficam guardadas para a próxima vez).
+**Novo projeto:** escolha a unidade (metros, centímetros ou milímetros) e a escala de impressão. O desenho já vem com camadas de engenharia (EIXOS, PAREDES, ESQUADRIAS, ESTRUTURA, COTAS, TEXTOS, HACHURAS, REDE-AGUA, REDE-ESGOTO, DRENAGEM, TOPOGRAFIA, CARIMBO e AUXILIAR, que não imprime). Cotas, textos e tracejados saem no tamanho certo para a escala.
 
-> Como na prancha técnica, **imprima em 100% (tamanho real)**. Confira na escala gráfica da folha.
+**Barra de ferramentas (embaixo, no celular):**
+- **Desenho:** linha, polilinha, retângulo, círculo, arco, polígono, elipse, spline, hachura, texto, texto multilinha, linha de construção e ponto.
+- **Editar:** mover, copiar, girar, espelhar, escala, paralela, **aparar**, **estender**, **concordar** (raio; 0 fecha o canto), **chanfrar**, **esticar**, **matriz** (retangular e polar), explodir, unir, quebrar, copiar propriedades, apagar, desfazer e refazer.
+- **Cotar:** linear, alinhada, contínua, raio, diâmetro e angular, com vírgula decimal (mm sem casas, cm com 1, m com 2), e editar texto.
+- **Zoom, Buscar, Medir e Camadas** continuam como antes.
+
+**Como usar no celular:** toque no comando e siga a mensagem que aparece embaixo. Para marcar pontos com precisão, segure o dedo meio segundo: aparece uma mira que se prende às pontas e cruzamentos. Medidas exatas podem ser digitadas na linha de comando, como `0,0`, depois `5,0` (em metros, uma parede de 5 m). Os atalhos do AutoCAD também funcionam (TR, EX, F, MI, SC, S, X, J, BR, AR, DLI, DAL, DCO, DRA, DDI, DAN, DT, ED, MA), assim como os nomes em português (APARAR, ESTENDER, CONCORDAR...).
+
+**Propriedades:** ao tocar num objeto aparece um painel com o tipo, o comprimento e a área. Por ele dá para trocar a camada, a cor e a espessura.
+
+**Rascunho automático:** o desenho em edição fica guardado no aparelho alguns segundos após cada mudança e quando o app vai para o fundo. Se o celular fechar o app, a tela inicial oferece **Recuperar rascunho**.
+
+**Salvar:**
+- **DWG** nas versões AutoCAD 2013, 2018 ou 2004. O gravador é o acadrust (livre, MPL-2.0).
+- **DXF**, o formato de troca que qualquer programa CAD abre.
+- Os DWGs gravados foram conferidos com dois leitores independentes (LibreDWG e acadrust), inclusive uma planta com 25 mil objetos, hachuras, blocos e cotas.
+- **Confira o primeiro DWG no seu DWG FastView ou AutoCAD antes de usar em entrega.** Se algo vier diferente, salve em DXF.
+
+**Plotar PDF:**
+- Folha A4 a A0.
+- Escala exata de 1:1 a 1:10.000, ou automática.
+- Área: o que está na tela, o desenho principal ou tudo.
+- Saída em preto ou com as cores do desenho, com espessuras de linha e o **mesmo carimbo** da prancha técnica.
+- Desenhos sem unidade são lidos em milímetros; se a planta estiver em metros, escolha **Metros** em "Unidade do desenho".
+
+> Imprima sempre em **100% (tamanho real)** e confira na escala gráfica da folha.
 
 ## Aplicativo para Android
 
@@ -72,6 +92,7 @@ O endereço é HTTPS, necessário para o giroscópio, a tela cheia e o WebXR fun
 npm ci
 npm run dev            # editor em http://localhost:5173
 npm test               # testes
+npm run build:dwg      # gravador DWG em WebAssembly (precisa de Rust + wasm32 + wasm-bindgen; opcional)
 npm run build:cad      # visualizador DWG/DXF (gera static/cad; rode antes do build do site)
 STATIC_SITE=1 VITE_STATIC_SITE=1 NODE_ENV=production npx vite build   # site estático em ./site
 ```

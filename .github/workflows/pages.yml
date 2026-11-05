@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +30,31 @@ jobs:
           NPM_CONFIG_INCLUDE: dev
       - name: Testes
         run: npm test
+      - name: Preparar o Rust para WebAssembly (gravador DWG)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/wasm-bindgen
+            ~/.cargo/registry
+            cad/dwg-writer/target
+          key: dwg-writer-${{ runner.os }}-${{ hashFiles('cad/dwg-writer/Cargo.lock', 'cad/dwg-writer/src/**') }}
+          restore-keys: dwg-writer-${{ runner.os }}-
+      - name: Instalar alvo WebAssembly e wasm-bindgen
+        id: wasmtools
+        continue-on-error: true
+        run: |
+          rustup target add wasm32-unknown-unknown
+          WB=$(awk '/^name = "wasm-bindgen"$/{getline; gsub(/version = |"/, ""); print; exit}' cad/dwg-writer/Cargo.lock)
+          if ! wasm-bindgen --version 2>/dev/null | grep -q "$WB"; then cargo install wasm-bindgen-cli --version "$WB" --locked --force; fi
+          wasm-bindgen --version
+      - name: Gerar o gravador DWG (acadrust em WebAssembly)
+        # Without it the app still works and saves DXF; the step is reported but does not stop the release.
+        if: steps.wasmtools.outcome == 'success'
+        continue-on-error: true
+        run: |
+          cargo test --release --manifest-path cad/dwg-writer/Cargo.toml
+          npm run build:dwg
+          ls -la cad/public/dwg
       - name: Gerar o visualizador DWG/DXF
         run: npm run build:cad
       - name: Gerar o site estático

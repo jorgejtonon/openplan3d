@@ -40,3 +40,7 @@ SEGREDOS-GITHUB.txt
 
 # DWG/DXF viewer bundle, built from cad/ by "npm run build:cad"
 /static/cad
+
+# Rust build output and the generated WebAssembly of the DWG writer
+/cad/dwg-writer/target
+/cad/public/dwg/op3d_dwg_writer*

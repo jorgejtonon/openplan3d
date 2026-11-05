@@ -9,6 +9,8 @@ distribuído nos termos da GNU General Public License versão 3: https://www.gnu
   (LibreDWG, Free Software Foundation; https://www.gnu.org/software/libredwg/)
 - @mlightcad/cad-simple-viewer, cad-simple-ui-plugin, cad-pdf-plugin, pdf-renderer, three-renderer 1.7.6,
   data-model 1.15.14, mtext-renderer 0.13.4 — MIT, Copyright (c) 2026 mlightcad
+- acadrust 0.6.8 (gravador DWG, compilado em dwg/op3d_dwg_writer_bg.wasm) — MPL-2.0, Copyright Hakan AK;
+  código-fonte em https://github.com/hakanaktt/acadrust
 - three 0.172.0 — MIT, Copyright (c) 2010-2025 three.js authors
 - pdf-lib 1.17.1 — MIT, Copyright (c) 2019 Andrew Dillon
 - jsPDF — MIT, Copyright (c) 2010-2025 James Hall, yWorks GmbH

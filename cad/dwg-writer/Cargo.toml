@@ -1,0 +1,22 @@
+[package]
+name = "op3d-dwg-writer"
+version = "0.1.0"
+edition = "2021"
+description = "DXF to DWG for the OpenPlan3D drawing editor, built on acadrust (MPL-2.0)"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pure Rust DWG writer (MPL-2.0). Sequential: WebAssembly has no threads here.
+acadrust = { version = "=0.6.8", default-features = false }
+wasm-bindgen = "0.2"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

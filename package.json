@@ -13,6 +13,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
+		"build:dwg": "cargo build --release --target wasm32-unknown-unknown --manifest-path cad/dwg-writer/Cargo.toml && wasm-bindgen --target web --no-typescript --out-dir cad/public/dwg cad/dwg-writer/target/wasm32-unknown-unknown/release/op3d_dwg_writer.wasm",
 		"build:cad": "npm ci --prefix cad && npm run build --prefix cad",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",

@@ -59,6 +59,12 @@
       legend { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 6px; }
       fieldset { border: 0; }
       .hide { display: none !important; }
+      .start-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+      #recoverBtn { max-width: 34rem; white-space: normal; }
+      .props { position: absolute; top: 8px; left: 8px; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; max-width: min(calc(100% - 16px), 46rem); background: #0b1220ee; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font-size: 13px; }
+      .props label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+      .props select { width: auto; max-width: 11rem; padding: 5px 8px; font-size: 13px; }
+      .props-info { flex: 1 0 100%; color: var(--text); }
       @media (max-width: 520px) { header .label-long { display: none; } }
     </style>
   </head>
@@ -67,23 +73,86 @@
       <header>
         <a class="back" href="../" title="Voltar ao OpenPlan3D">← <span class="label-long">OpenPlan3D</span></a>
         <span id="fileName">Visualizador DWG/DXF</span>
+        <button class="btn" id="newBtn" type="button">Novo</button>
         <button class="btn" id="openBtn" type="button">Abrir</button>
-        <button class="btn" id="saveBtn" type="button" disabled title="Salvar o desenho editado em DXF">DXF</button>
+        <button class="btn" id="saveBtn" type="button" disabled title="Salvar o desenho em DXF (abre no AutoCAD e em outros programas CAD)">Salvar</button>
         <button class="btn primary" id="plotBtn" type="button" disabled>Plotar PDF</button>
       </header>
       <main id="viewerPane">
         <div id="cad-container"></div>
+        <div id="propsPanel" class="props hide" aria-label="Propriedades da seleção">
+          <div class="props-info" data-prop="info"></div>
+          <label>Camada <select data-prop="layer"></select></label>
+          <label>Cor <select data-prop="color"></select></label>
+          <label>Espessura <select data-prop="weight"></select></label>
+        </div>
         <div id="emptyState">
-          <h1>Visualizador DWG/DXF</h1>
-          <p>Abra plantas e projetos em DWG ou DXF do celular, do WhatsApp ou do Drive. Tudo roda no aparelho: o arquivo não é enviado para nenhum servidor.</p>
-          <button class="btn primary" id="emptyOpenBtn" type="button">Abrir DWG ou DXF</button>
-          <div class="features"><span>Zoom com dois dedos</span><span>Camadas</span><span>Medir distância e área</span><span>Buscar texto</span><span>Marcações de revisão</span><span>Editar e salvar DXF</span><span>Plotar PDF na escala com carimbo</span></div>
+          <h1>Projetos DWG/DXF</h1>
+          <p>Crie projetos novos ou abra plantas em DWG e DXF do celular, do WhatsApp ou do Drive. Tudo roda no aparelho: o arquivo não é enviado para nenhum servidor.</p>
+          <div class="start-actions">
+            <button class="btn primary" id="emptyNewBtn" type="button">Novo projeto</button>
+            <button class="btn primary" id="emptyOpenBtn" type="button">Abrir DWG ou DXF</button>
+          </div>
+          <button class="btn hide" id="recoverBtn" type="button"></button>
+          <div class="features"><span>Desenhar e editar</span><span>Aparar, estender, concordar</span><span>Cotas</span><span>Camadas</span><span>Medir distância e área</span><span>Buscar texto</span><span>Salvar DXF</span><span>Plotar PDF na escala com carimbo</span></div>
           <a href="./LICENCAS.txt" target="_blank" rel="noopener" style="color: var(--muted); font-size: 12px">Licenças e código-fonte</a>
         </div>
       </main>
     </div>
     <input type="file" id="fileInput" accept=".dwg,.dxf,application/acad,image/vnd.dwg,image/x-dwg,application/dxf,image/vnd.dxf" hidden />
     <div id="toast" role="status"></div>
+
+    <dialog id="newDialog" aria-labelledby="newTitle">
+      <form method="dialog" class="dlg" id="newForm">
+        <div class="dlg-head">
+          <h2 id="newTitle">Novo projeto</h2>
+          <p>Desenho em branco com camadas de engenharia (paredes, eixos, cotas, textos, redes de água e esgoto, drenagem, topografia...). Cotas, textos e tracejados já saem no tamanho certo para a escala escolhida.</p>
+        </div>
+        <div class="dlg-body">
+          <div class="grid">
+            <label class="f wide">Nome do arquivo<input type="text" name="name" value="projeto" autocomplete="off" /></label>
+            <label class="f">Unidade do desenho
+              <select name="unit"><option value="m" selected>Metros</option><option value="cm">Centímetros</option><option value="mm">Milímetros</option></select>
+            </label>
+            <label class="f">Escala de impressão
+              <select name="scale"><option>20</option><option>25</option><option selected>50</option><option>75</option><option>100</option><option>200</option><option>250</option><option>500</option><option>1000</option><option>2000</option><option>5000</option></select>
+            </label>
+          </div>
+          <p style="color: var(--muted); font-size: 13px">Dica: digite as medidas na unidade escolhida. Ex.: em metros, uma parede de 3,5 m é "3.5".</p>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" value="cancel" type="submit" formnovalidate>Cancelar</button>
+          <button class="btn primary" id="newGo" type="button">Criar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="saveDialog" aria-labelledby="saveTitle">
+      <form method="dialog" class="dlg" id="saveForm">
+        <div class="dlg-head">
+          <h2 id="saveTitle">Salvar desenho</h2>
+          <p id="saveNote">DWG abre no AutoCAD, no DWG FastView e em outros programas CAD. DXF é o formato de troca mais aceito.</p>
+        </div>
+        <div class="dlg-body">
+          <div class="grid">
+            <label class="f wide">Nome do arquivo<input type="text" name="name" autocomplete="off" /></label>
+            <label class="f wide">Formato
+              <select name="format" id="saveFormat">
+                <option value="dwg2013" selected>DWG (AutoCAD 2013 ou mais novo)</option>
+                <option value="dwg2018">DWG (AutoCAD 2018 ou mais novo)</option>
+                <option value="dwg2004">DWG (AutoCAD 2004 ou mais novo)</option>
+                <option value="dxf">DXF (qualquer programa CAD)</option>
+              </select>
+            </label>
+          </div>
+          <div id="saveStatus" class="status info hide"></div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn" value="cancel" type="submit" formnovalidate>Cancelar</button>
+          <button class="btn primary" id="saveGo" type="button">Salvar</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog id="plotDialog" aria-labelledby="plotTitle">
       <form method="dialog" class="dlg" id="plotForm">

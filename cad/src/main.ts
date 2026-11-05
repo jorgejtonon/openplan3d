@@ -1,11 +1,15 @@
 import { AcApDocManager, AcApSettingManager, AcEdOpenMode, acedApplyUiTheme, eventBus, type AcApOpenDatabaseOptions } from '@mlightcad/cad-simple-viewer';
-import { AcDbDatabaseConverterManager, AcDbFileType } from '@mlightcad/data-model';
+import { AcDbDatabaseConverterManager, AcDbFileType, AcGeBox2d } from '@mlightcad/data-model';
 import { AcDbLibreDwgConverter } from '@mlightcad/libredwg-converter';
 import { acuiRegisterSimpleUiPlugin } from '@mlightcad/cad-simple-ui-plugin/register';
 import { emptyTitleBlock, type TitleBlockData, type SheetFormat, type SheetOrientation } from '$lib/utils/sheetFrame';
 import { installNativeHooks, isNativeApp } from '$lib/native/appBridge';
 import { PLOT_SCALES, drawingExtents, isUsableBox, planPlot, plotDrawing, plotFileName, type Box2, type DrawingUnitChoice, type PlotArea, type PlotOptions } from './plot';
 import { applyPortuguese } from './i18nPt';
+import { registerEditorCommands } from './commands/register';
+import { draftingToolbarItems } from './toolbar';
+import { dwgWriterAvailable, dxfToDwg } from './dwgWriter';
+import { installPropertiesPanel, keepDraft, loadDraft, setupForScale, templateFor, type NewUnit } from './workspace';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const container = $<HTMLDivElement>('cad-container');
@@ -77,10 +81,12 @@ function initialize(): Promise<void> {
     await acuiRegisterSimpleUiPlugin(AcApDocManager.instance.pluginManager, {
       host: viewerPane,
       dockPanel: { defaultOpen: false, defaultHeight: 240, defaultWidth: 280 },
-      toolbar: { placement: 'right', items: 'default', collapsible: true },
+      toolbar: { placement: 'right', items: 'default', collapsible: true, appendItems: draftingToolbarItems(), appendItemsBefore: 'zoom' },
       layouts: {
         phone: {
           toolbar: {
+            // Drafting first; review markups stay available by command, to leave room on the phone.
+            appendItems: draftingToolbarItems(), appendItemsBefore: 'zoom', excludeItems: ['annotation'],
             placement: 'bottom', showLabels: true, size: 'stretch', edgeOffset: 0, collapsible: false, inCanvasParent: true,
             subToolbar: { showLabels: true, showSeparators: false, size: 'stretch', overflow: 'wrap', replaceOnNested: true },
           },
@@ -88,6 +94,9 @@ function initialize(): Promise<void> {
       },
     } as never);
     applyPortuguese();
+    registerEditorCommands();
+    // Automated tests read the drawing through this; it only exists with ?e2e in the address.
+    if (new URLSearchParams(location.search).has('e2e')) (window as unknown as { __cad: unknown }).__cad = { AcApDocManager, AcGeBox2d };
     const docManager = AcApDocManager.instance;
     docManager.events.documentActivated.addEventListener(() => onDocumentShown());
     eventBus.on('failed-to-open-file', (event: { fileName: string }) => {
@@ -99,6 +108,10 @@ function initialize(): Promise<void> {
 
 let opening = false;
 
+const props = installPropertiesPanel($<HTMLElement>('propsPanel'));
+let stopDraft: (() => void) | null = null;
+let draftDb: unknown = null;
+
 function onDocumentShown() {
   // While a file opens, the viewer may announce the document before it is complete.
   if (opening) return;
@@ -109,6 +122,16 @@ function onDocumentShown() {
   emptyState.classList.add('hide');
   setDrawingActions(true);
   extentsCache = null;
+  props.bind();
+  props.refresh();
+  // A draft of the drawing is kept on the device while it is edited.
+  if (draftDb !== doc.database) {
+    stopDraft?.();
+    draftDb = doc.database;
+    stopDraft = keepDraft(doc.database, () => currentFile, when => {
+      fileNameLabel.title = `Rascunho guardado no aparelho às ${when.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    });
+  }
 }
 
 /** Main-drawing extents are worked out in the background; a plot waits for them. */
@@ -153,23 +176,80 @@ function zoomToDrawing() {
 
 async function openFile(file: File) {
   if (!/\.(dwg|dxf)$/i.test(file.name)) { toast('Escolha um arquivo DWG ou DXF.', 'error'); return; }
+  await openBuffer(file.name, () => file.arrayBuffer(), `${file.name} aberto.`);
+}
+
+/** Opens drawing content under a file name; true when it opened. */
+async function openBuffer(name: string, content: () => Promise<ArrayBuffer>, done: string, zoom = true): Promise<boolean> {
   await initialize();
   emptyState.classList.add('hide');
-  fileNameLabel.textContent = `Abrindo ${file.name}…`;
+  fileNameLabel.textContent = `Abrindo ${name}…`;
   // No plotting or saving while the next drawing replaces the current one.
   setDrawingActions(false);
   opening = true;
   try {
-    const content = await file.arrayBuffer();
-    const ok = await AcApDocManager.instance.openDocument(file.name, content, openOptions()).finally(() => { opening = false; });
-    if (ok) { onDocumentShown(); zoomToDrawing(); toast(`${file.name} aberto.`, 'ok', 2500); }
+    const ok = await AcApDocManager.instance.openDocument(name, await content(), openOptions()).finally(() => { opening = false; });
+    if (ok) { onDocumentShown(); if (zoom) zoomToDrawing(); toast(done, 'ok', 2500); focusCommandLine(); }
     else openFailed();
+    return ok;
   } catch (error) {
     opening = false;
     console.error(error);
-    toast(`Erro ao abrir ${file.name}.`, 'error');
+    toast(`Erro ao abrir ${name}.`, 'error');
     openFailed();
+    return false;
   }
+}
+
+/* ------------------------------ New project and draft ------------------------------ */
+
+const newDialog = $<HTMLDialogElement>('newDialog');
+const newForm = $<HTMLFormElement>('newForm');
+const NEW_KEY = 'o3d_cad_new';
+for (const id of ['newBtn', 'emptyNewBtn']) $(id).addEventListener('click', () => {
+  const last = readJSON(NEW_KEY);
+  for (const key of ['unit', 'scale'] as const) {
+    const el = newForm.elements.namedItem(key) as HTMLSelectElement;
+    if (typeof last[key] === 'string' && [...el.options].some(o => o.value === last[key])) el.value = last[key] as string;
+  }
+  newDialog.showModal();
+});
+$('newGo').addEventListener('click', async () => {
+  const value = (key: string) => (newForm.elements.namedItem(key) as HTMLInputElement | HTMLSelectElement).value;
+  const unit = value('unit') as NewUnit;
+  const scale = Number(value('scale'));
+  const base = (value('name').trim() || 'projeto').replace(/[\\/:*?"<>|]+/g, '-').replace(/\.(dwg|dxf)$/i, '');
+  const name = `${base}.dxf`;
+  writeJSON(NEW_KEY, { unit, scale: String(scale) });
+  newDialog.close();
+  const ok = await openBuffer(name, () => templateFor(unit), `Projeto ${name} criado em ${unit === 'm' ? 'metros' : unit === 'cm' ? 'centímetros' : 'milímetros'}, escala 1:${scale}.`, false);
+  if (!ok) return;
+  const db = AcApDocManager.instance.curDocument.database;
+  setupForScale(db, unit, scale);
+  // The plot dialog starts at the chosen scale for this drawing.
+  writeJSON(fileKey(name), { ...readJSON(fileKey(name)), scale: String(scale), units: 'auto', area: 'extents' });
+  // Show an area about the size of the sheet at that scale (A3 drawing area).
+  const k = unit === 'mm' ? scale : unit === 'cm' ? scale / 10 : scale / 1000;
+  try { AcApDocManager.instance.curView.zoomTo(new AcGeBox2d({ x: 0, y: 0 }, { x: 380 * k, y: 230 * k })); } catch { /* keep default view */ }
+});
+
+const recoverBtn = $<HTMLButtonElement>('recoverBtn');
+void loadDraft().then(draft => {
+  if (!draft) return;
+  const when = new Date(draft.savedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  recoverBtn.textContent = `Recuperar rascunho de ${draft.name} (${when})`;
+  recoverBtn.classList.remove('hide');
+  recoverBtn.addEventListener('click', async () => {
+    const bytes = typeof draft.dxf === 'string' ? new TextEncoder().encode(draft.dxf) : draft.dxf;
+    const ok = await openBuffer(draft.name.replace(/\.dwg$/i, '.dxf'), async () => bytes.slice().buffer as ArrayBuffer, 'Rascunho recuperado. Salve em DXF para guardar uma cópia.');
+    if (ok) recoverBtn.classList.add('hide');
+  });
+});
+
+/** On computers, typing goes straight to the command line (on phones it would pop up the keyboard). */
+function focusCommandLine() {
+  if (!matchMedia('(pointer: fine)').matches) return;
+  setTimeout(() => document.querySelector<HTMLInputElement>('.ml-cli-text')?.focus(), 50);
 }
 
 function setDrawingActions(enabled: boolean) {
@@ -216,17 +296,56 @@ function download(bytes: Uint8Array | string, name: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-saveBtn.addEventListener('click', () => {
+/* ------------------------------ Save (DWG or DXF) ------------------------------ */
+
+const saveDialog = $<HTMLDialogElement>('saveDialog');
+const saveFileForm = $<HTMLFormElement>('saveForm');
+const saveFormat = $<HTMLSelectElement>('saveFormat');
+const saveStatus = $<HTMLDivElement>('saveStatus');
+const saveGo = $<HTMLButtonElement>('saveGo');
+const SAVE_KEY = 'o3d_cad_save';
+let dwgReady: Promise<boolean> | null = null;
+
+saveBtn.addEventListener('click', async () => {
+  const nameField = saveFileForm.elements.namedItem('name') as HTMLInputElement;
+  nameField.value = currentFile.replace(/\.(dwg|dxf)$/i, '') || 'projeto';
+  dwgReady ??= dwgWriterAvailable();
+  const canDwg = await dwgReady;
+  for (const option of [...saveFormat.options]) if (option.value.startsWith('dwg')) option.disabled = !canDwg;
+  const last = readJSON(SAVE_KEY).format;
+  saveFormat.value = !canDwg ? 'dxf' : typeof last === 'string' && [...saveFormat.options].some(o => o.value === last) ? last : 'dwg2013';
+  saveStatus.className = 'status info' + (canDwg ? ' hide' : '');
+  saveStatus.textContent = canDwg ? '' : 'Esta versão não traz o gravador DWG; salve em DXF (o AutoCAD e o DWG FastView abrem DXF).';
+  saveGo.disabled = false;
+  saveDialog.showModal();
+});
+
+saveGo.addEventListener('click', async () => {
   const db = AcApDocManager.instance?.curDocument?.database;
   if (!db) return;
+  const format = saveFormat.value;
+  const base = ((saveFileForm.elements.namedItem('name') as HTMLInputElement).value.trim() || 'projeto').replace(/[\\/:*?"<>|]+/g, '-').replace(/\.(dwg|dxf)$/i, '');
+  writeJSON(SAVE_KEY, { format });
+  saveGo.disabled = true;
+  saveStatus.className = 'status info';
+  saveStatus.textContent = format === 'dxf' ? 'Gerando DXF…' : 'Convertendo para DWG…';
   try {
     const dxf = db.dxfOut(undefined, 8);
-    const name = currentFile.replace(/\.(dwg|dxf)$/i, '') + '.dxf';
-    download(dxf, name, 'application/dxf');
-    toast(`Salvo como ${name}.`, 'ok');
+    if (format === 'dxf') {
+      download(dxf, `${base}.dxf`, 'application/dxf');
+    } else {
+      const dwg = await dxfToDwg(dxf, Number(format.slice(3)));
+      download(dwg, `${base}.dwg`, 'application/acad');
+    }
+    saveDialog.close();
+    toast(`Salvo como ${base}.${format === 'dxf' ? 'dxf' : 'dwg'}.`, 'ok');
   } catch (error) {
     console.error(error);
-    toast('Não foi possível salvar o DXF.', 'error');
+    saveStatus.className = 'status warn';
+    saveStatus.textContent = `Não foi possível salvar em DWG (${error instanceof Error ? error.message : String(error)}). Salve em DXF: abre no AutoCAD e no DWG FastView.`;
+    saveFormat.value = 'dxf';
+  } finally {
+    saveGo.disabled = false;
   }
 });
 
